@@ -1,4 +1,4 @@
-// ...existing code...
+
 exports.handler = async function(event) {
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method not allowed' };
   const SUPA_URL = process.env.SUPABASE_URL;
@@ -48,4 +48,3 @@ exports.handler = async function(event) {
     return { statusCode: 500, body: String(err) };
   }
 };
-// ...existing code...
