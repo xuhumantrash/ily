@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cartas não lidas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <h1 class="site-title">Meus pensamentos e Sentimentos</h1>
+
+    <div class="search-wrap">
+      <input id="search" type="search" placeholder="Palavra-Chave" />
+      <p class="choose">Escolha uma data abaixo</p>
+    </div>
+
+    <div class="layout">
+      <aside class="calendar" aria-label="Calendário">
+        <div class="header">
+          <button id="prev" class="nav btn" aria-label="Mês anterior">←</button>
+          <div id="month-year" class="month-year">Janeiro 2025</div>
+          <button id="next" class="nav btn" aria-label="Próximo mês">→</button>
+        </div>
+
+        <div class="weekdays">
+          <div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div><div>Dom</div>
+        </div>
+
+        <div class="days" id="days" role="grid" aria-label="dias do mês"></div>
+      </aside>
+
+      <section class="diary-panel" aria-live="polite">
+        <div class="diary-card">
+          <h2 id="selectedDateTitle">Selecione uma data</h2>
+          <div id="entries" class="entries">
+            <p class="muted">Clique em um dia para ver ou adicionar cartas.</p>
+          </div>
+
+          <form id="entryForm" style="display:none;">
+            <textarea id="entryText" rows="6" placeholder="Escreva sua carta..."></textarea>
+            <div class="form-actions">
+              <button type="submit" class="btn primary">Salvar</button>
+              <button type="button" id="clearAll" class="btn">Apagar todas</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
