@@ -359,21 +359,29 @@ document.addEventListener('DOMContentLoaded', function () {
       return JSON.parse(dec.decode(plain));
     }
 
-    // upload para save-entry
+    // upload para save-entry (usar FUNCTION_BASE)
     async function saveRemote(dateStr, objCipher) {
-      const res = await fetch('/.netlify/functions/save-entry', {
+      const url = `${FUNCTION_BASE}/save-entry`;
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: dateStr, ciphertext: objCipher })
       });
-      if (!res.ok) throw new Error('Falha ao salvar remotamente');
+      if (!res.ok) {
+        const txt = await res.text().catch(()=>res.statusText);
+        throw new Error('Falha ao salvar remotamente: ' + txt);
+      }
       return (await res.json()).id;
     }
 
-    // fetch de todas as linhas
+    // fetch de todas as linhas (usar FUNCTION_BASE)
     async function fetchAllRemote() {
-      const res = await fetch('/.netlify/functions/get-entries');
-      if (!res.ok) throw new Error('Falha ao obter entradas remotas');
+      const url = `${FUNCTION_BASE}/get-entries`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const txt = await res.text().catch(()=>res.statusText);
+        throw new Error('Falha ao obter entradas remotas: ' + txt);
+      }
       return await res.json(); // array de {id,date,ciphertext,...}
     }
 
@@ -485,3 +493,6 @@ document.addEventListener('DOMContentLoaded', function () {
     selectDate(todayStr);
   })();
 });
+
+// defina a base das Netlify Functions (substitua pelo seu site Netlify)
+const FUNCTION_BASE = 'https://xuily.netlify.app/.netlify/functions';
