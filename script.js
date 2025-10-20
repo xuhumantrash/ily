@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const prevBtn = document.getElementById('prev');
   const nextBtn = document.getElementById('next');
   const searchInput = document.getElementById('search');
+  const FUNCTION_BASE = 'https://xuily.netlify.app/.netlify/functions';
 
   if (!daysContainer || !monthYearEl) return;
 
@@ -496,3 +497,4 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // defina a base das Netlify Functions (substitua pelo seu site Netlify)
 const FUNCTION_BASE = 'https://xuily.netlify.app/.netlify/functions';
+
