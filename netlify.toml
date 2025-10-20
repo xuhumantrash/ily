@@ -1,4 +1,4 @@
 # filepath: netlify.toml
 [build]
-  publish = "."    # ou "." se seus arquivos estiverem na raiz
+  publish = "public"    # ou "." se seus arquivos estiverem na raiz
   functions = "netlify/functions"
