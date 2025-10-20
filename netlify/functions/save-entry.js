@@ -1,50 +1,30 @@
+// ...existing code...
+const { createClient } = require('@supabase/supabase-js');
+const SUPA_URL = process.env.SUPABASE_URL;
+const SUPA_KEY = process.env.SUPABASE_KEY;
+const supabase = createClient(SUPA_URL, SUPA_KEY);
 
 exports.handler = async function(event) {
-  if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method not allowed' };
-  const SUPA_URL = process.env.SUPABASE_URL;
-  const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;
-  if (!SUPA_URL || !SUPA_KEY) return { statusCode: 500, body: 'Server misconfigured' };
-
   try {
     const body = JSON.parse(event.body || '{}');
-    const { date, ciphertext } = body;
-    if (!date || !ciphertext) return { statusCode: 400, body: 'missing date or ciphertext' };
+    const date = body.date;
+    const ciphertext = body.ciphertext; // seu JSON criptografado com campo texts[...]
 
-    // verificar se já existe entry com a mesma date
-    const checkRes = await fetch(`${SUPA_URL}/rest/v1/entries?date=eq.${encodeURIComponent(date)}&select=id`, {
-      headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` }
-    });
-    const existing = await checkRes.json();
+    // opcional: descriptografe aqui ou armazene ciphertext tal qual
+    // se quiser interpretar texts para decidir delete/upsert, descriptografe e checar payload.texts
 
-    if (existing && existing.length > 0) {
-      const id = existing[0].id;
-      const patchRes = await fetch(`${SUPA_URL}/rest/v1/entries?id=eq.${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPA_KEY,
-          'Authorization': `Bearer ${SUPA_KEY}`,
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({ ciphertext })
-      });
-      const updated = await patchRes.json();
-      return { statusCode: 200, body: JSON.stringify({ id: updated[0].id }) };
-    } else {
-      const postRes = await fetch(`${SUPA_URL}/rest/v1/entries`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPA_KEY,
-          'Authorization': `Bearer ${SUPA_KEY}`,
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({ date, ciphertext })
-      });
-      const data = await postRes.json();
-      return { statusCode: 200, body: JSON.stringify({ id: data[0].id }) };
-    }
+    // exemplo: upsert por date (sobrescreve a linha existente)
+    const payload = { date, ciphertext, updated_at: new Date().toISOString() };
+    const { data, error } = await supabase.from('diary').upsert(payload, { onConflict: 'date' });
+
+    if (error) throw error;
+
+    // se preferir deletar quando payload.texts for vazio, faça:
+    // await supabase.from('diary').delete().eq('date', date);
+
+    return { statusCode: 200, body: JSON.stringify({ ok: true, data }) };
   } catch (err) {
     return { statusCode: 500, body: String(err) };
   }
 };
+// ...existing code...
