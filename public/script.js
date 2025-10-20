@@ -165,9 +165,15 @@ document.addEventListener('DOMContentLoaded', function () {
   function deleteEntryById(dateStr, id){
     const arr = loadEntries(dateStr).filter(x=> x.id !== id);
     saveEntries(dateStr, arr);
+    if (window.authPass && typeof window.syncDayRemote === 'function') {
+      window.syncDayRemote(dateStr).catch(e=>console.error('Erro ao sincronizar exclusão:', e));
+    }
   }
   function clearAllForDay(dateStr){
     saveEntries(dateStr, []);
+    if (window.authPass && typeof window.syncDayRemote === 'function') {
+      window.syncDayRemote(dateStr).catch(e=>console.error('Erro ao sincronizar limpeza:', e));
+    }
   }
 
 
@@ -394,45 +400,21 @@ document.addEventListener('DOMContentLoaded', function () {
         const text = ta ? ta.value.trim() : '';
         if (!text) return;
 
+        // usa a data selecionada do calendário (variável global selectedDate)
         const dateStr = window.selectedDate || selectedDate;
         if (!dateStr) { alert('Selecione uma data no calendário antes de salvar.'); return; }
 
-        // salva localmente sempre
+        // salva localmente sempre (mantém comportamento original)
         addEntry(dateStr, text);
 
-        // se temos senha em memória, mesclar com o remoto antes de salvar
+        // se o site estiver desbloqueado e tivermos a senha em memória, salva também no backend
         if (window.authPass) {
           try {
-            const rows = await fetchAllRemote().catch(()=>[]);
-            const row = (rows || []).find(r => String(r.date) === String(dateStr));
-            let existingTexts = [];
-
-            if (row && row.ciphertext) {
-              try {
-                const existingPayload = await decryptObject(row.ciphertext, window.authPass.toLowerCase());
-                existingTexts = Array.isArray(existingPayload.texts) ? existingPayload.texts : (existingPayload.text ? [existingPayload.text] : []);
-              } catch(err) {
-                console.warn('Não foi possível descriptografar payload remoto deste dia; ignorando remoto.');
-              }
-            }
-
-            // textos já presentes localmente (após addEntry)
-            const localTexts = (loadEntries(dateStr) || []).map(x => x.text).filter(Boolean);
-
-            // combina mantendo ordem e evitando duplicatas simples
-            const combined = [];
-            existingTexts.concat(localTexts).forEach(t => {
-              if (!combined.includes(t)) combined.push(t);
-            });
-            if (!combined.includes(text)) combined.push(text);
-
-            const payload = { date: dateStr, texts: combined, created: new Date().toISOString() };
+            const payload = { date: dateStr, texts: [ text ], created: new Date().toISOString() };
             const cipher = await encryptObject(payload, window.authPass.toLowerCase());
             await saveRemote(dateStr, cipher);
-            console.log('Salvo remoto com sucesso (merge realizado)');
-          } catch (err) {
-            console.error('Erro ao salvar remoto:', err);
-          }
+            console.log('Salvo remoto com sucesso');
+          } catch (err) { console.error('Erro ao salvar remoto:', err); }
         }
 
         if (ta) ta.value = '';
