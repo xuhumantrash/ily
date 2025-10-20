@@ -410,7 +410,10 @@ document.addEventListener('DOMContentLoaded', function () {
         // se o site estiver desbloqueado e tivermos a senha em memória, salva também no backend
         if (window.authPass) {
           try {
-            const payload = { date: dateStr, texts: [ text ], created: new Date().toISOString() };
+            // envia o SNAPSHOT completo do dia (evita que o backend mantenha versões antigas que reconstituem cartas apagadas)
+            const existingLocal = loadEntries(dateStr) || [];
+            const texts = existingLocal.map(x => x.text);
+            const payload = { date: dateStr, texts, created: new Date().toISOString() };
             const cipher = await encryptObject(payload, window.authPass.toLowerCase());
             await saveRemote(dateStr, cipher);
             console.log('Salvo remoto com sucesso');
@@ -468,20 +471,29 @@ document.addEventListener('DOMContentLoaded', function () {
           // carrega entradas remotas via função get-entries -> tenta descriptografar cada registro com a senha
           try {
             const rows = await fetchAllRemote().catch(()=>[]);
+            // monta um mapa date -> registro mais recente (por payload.created)
+            const latest = {};
             for (const r of rows){
               try {
                 const payload = await decryptObject(r.ciphertext, pass);
-                // payload esperado: { date, texts:[...] }
-                const existing = loadEntries(payload.date) || [];
-                (payload.texts || []).forEach(t => existing.push({ id: Date.now() + Math.floor(Math.random()*1000), text: t, created: payload.created || new Date().toISOString() }));
-                saveEntries(payload.date, existing); // atualiza local + calendário
+                if (!payload || !payload.date) continue;
+                const ts = Date.parse(payload.created || '') || 0;
+                if (!latest[payload.date] || ts > latest[payload.date].ts) {
+                  latest[payload.date] = { payload, ts };
+                }
               } catch(e){
-                // senha não bateu para esse registro -> ignora
+                // descriptografia falhou para este registro -> ignora
               }
             }
-          } catch(err){
-            console.error('Erro ao carregar entradas remotas:', err);
-          }
+            // substitui local por cada payload mais recente (não faz append)
+            Object.keys(latest).forEach(date => {
+              const texts = Array.isArray(latest[date].payload.texts) ? latest[date].payload.texts : [];
+              const arr = texts.map(t => ({ id: Date.now() + Math.floor(Math.random()*1000), text: t, created: latest[date].payload.created || new Date().toISOString() }));
+              saveEntries(date, arr);
+            });
+           } catch(err){
+             console.error('Erro ao carregar entradas remotas:', err);
+           }
         });
 
         // sem handler de cancelamento — apenas o botão "Entrar" está disponível
