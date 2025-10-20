@@ -414,8 +414,19 @@ document.addEventListener('DOMContentLoaded', function () {
             const existingLocal = loadEntries(dateStr) || [];
             const texts = existingLocal.map(x => x.text);
             const payload = { date: dateStr, texts, created: new Date().toISOString() };
-            const cipher = await encryptObject(payload, window.authPass.toLowerCase());
-            await saveRemote(dateStr, cipher);
+            // se texts vazio, peça ao servidor deletar
+            const bodyToSend = (texts.length === 0) ? { date: dateStr, del: true } : { date: dateStr, ciphertext: cipher };
+            // se usar saveRemote que sempre espera ciphertext, você pode chamar fetch direto:
+            if (texts.length === 0) {
+              await fetch(`${FUNCTION_BASE}/save-entry`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: dateStr, del: true })
+              });
+            } else {
+              const cipher = await encryptObject(payload, window.authPass.toLowerCase());
+              await saveRemote(dateStr, cipher);
+            }
             console.log('Salvo remoto com sucesso');
           } catch (err) { console.error('Erro ao salvar remoto:', err); }
         }
